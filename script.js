@@ -1,14 +1,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signOut, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAYQ9UKq6teDdfleoCfG_-kjiIf6Gj0DNc", 
-  authDomain: "ot-tracker-pro-64415.firebaseapp.com",
-  projectId: "ot-tracker-pro-64415",
-  storageBucket: "ot-tracker-pro-64415.firebasestorage.app",
-  messagingSenderId: "941888808954",
-  appId: "1:941888808954:web:e40f19a0cec8a2f4272643"
+    apiKey: "AIzaSyAYQ9UKq6teDdfleoCfG_-kjiIf6Gj0DNc", 
+    authDomain: "ot-tracker-pro-64415.firebaseapp.com",
+    projectId: "ot-tracker-pro-64415"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -16,296 +13,219 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser = null;
-let otList = []; 
-let isLoginMode = true;
-let userBasicSalary = 2500; 
+let localOTDraft = []; 
+let globalBasicSalary = 2500; 
+let isRegisterMode = false;  
 
-window.paparNotification = function(mesej, jenis = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `toast-item toast-${jenis}`;
-    let icon = '<i class="fas fa-check-circle" style="color: #34c759;"></i>';
-    if (jenis === 'danger') icon = '<i class="fas fa-times-circle" style="color: #ff3b30;"></i>';
-    if (jenis === 'warning') icon = '<i class="fas fa-exclamation-circle" style="color: #ffcc00;"></i>';
-    toast.innerHTML = `${icon} <span>${mesej}</span>`;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.animation = 'fadeOutToast 0.3s ease forwards';
-        setTimeout(() => { toast.remove(); }, 300);
-    }, 4000);
-};
+/* =========================================================================
+   PREMIUM UI ENGINE (THREE.JS & GSAP & CHOICES.JS)
+   ========================================================================= */
+function initPremiumUI() {
+    const canvas = document.getElementById('bg-canvas');
+    if(canvas) {
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        const geom = new THREE.BufferGeometry();
+        const posArray = new Float32Array(500 * 3);
+        for(let i=0; i<500*3; i++) posArray[i] = (Math.random() - 0.5) * 10;
+        geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const mat = new THREE.PointsMaterial({ size: 0.005, color: 0x0d6efd });
+        const mesh = new THREE.Points(geom, mat);
+        scene.add(mesh);
+        camera.position.z = 3;
 
-window.toggleSidebar = function() {
-    const sidebar = document.getElementById('sidebar-menu');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (sidebar) sidebar.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active');
-};
-
-function tetapkanTarikhDefault() {
-    const dateEl = document.getElementById('ot-date');
-    if (dateEl) {
-        const today = new Date().toISOString().split('T')[0];
-        dateEl.value = today;
-    }
-}
-
-window.tambahKeSenaraiTempatan = function(event) {
-    if (event) event.preventDefault();
-    const dateEl = document.getElementById('ot-date');
-    const taskReasonEl = document.getElementById('ot-reason');
-    const rateMultiplierEl = document.getElementById('ot-rate');
-    const hoursWorkedEl = document.getElementById('ot-hours');
-    
-    if (!dateEl || !taskReasonEl || !rateMultiplierEl || !hoursWorkedEl) return;
-
-    const tarikhMentah = dateEl.value; 
-    const susunTarikh = tarikhMentah.split('-').reverse().join('/');
-    const originalTaskName = taskReasonEl.value;
-    const selectedRate = parseFloat(rateMultiplierEl.value);
-    const totalHoursInput = parseFloat(hoursWorkedEl.value);
-    const baseGroupId = "GRP-" + Date.now().toString().slice(-5);
-
-    if (selectedRate === 3.0) {
-        if (totalHoursInput > 8) {
-            otList.push({
-                id: "TX-" + Date.now().toString().slice(-5) + "-A",
-                groupId: baseGroupId, otDate: susunTarikh,
-                taskName: `${originalTaskName} (PH Normal)`,
-                rateFactor: 2.0, hoursCount: 8.0
-            });
-            otList.push({
-                id: "TX-" + (Date.now() + 1).toString().slice(-5) + "-B",
-                groupId: baseGroupId, otDate: susunTarikh,
-                taskName: `${originalTaskName} (PH OT)`,
-                rateFactor: 3.0, hoursCount: totalHoursInput - 8
-            });
-        } else {
-            otList.push({
-                id: "TX-" + Date.now().toString().slice(-5),
-                groupId: baseGroupId, otDate: susunTarikh,
-                taskName: `${originalTaskName} (PH Normal)`,
-                rateFactor: 2.0, hoursCount: totalHoursInput
-            });
+        function animateBg() {
+            requestAnimationFrame(animateBg);
+            mesh.rotation.y += 0.001;
+            mesh.rotation.x += 0.0005;
+            renderer.render(scene, camera);
         }
-    } else {
-        otList.push({
-            id: "TX-" + Date.now().toString().slice(-5),
-            groupId: baseGroupId, otDate: susunTarikh,
-            taskName: originalTaskName,
-            rateFactor: selectedRate, hoursCount: totalHoursInput
+        animateBg();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         });
     }
-    taskReasonEl.value = ""; 
-    tetapkanTarikhDefault();
-    window.renderTable();
-    window.paparNotification("Draf tugasan berjaya dimasukkan ke senarai.", "success");
+
+    gsap.to(".gsap-element", { y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: "power3.out", delay: 0.1 });
+
+    const selectRate = document.getElementById('ot-rate');
+    if (selectRate) new Choices(selectRate, { searchEnabled: false, itemSelectText: '' });
+}
+
+/* =========================================================================
+   AUTH & DASHBOARD LOGIC (KEKALKAN LOGIC ASAL KAU)
+   ========================================================================= */
+onAuthStateChanged(auth, async (user) => {
+    const namaHalaman = window.location.pathname.split("/").pop();
+
+    if (user) {
+        currentUser = user;
+        if (namaHalaman === "login.html" || namaHalaman === "") {
+            window.location.href = "index.html"; return;
+        }
+        
+        try {
+            const docSnap = await getDoc(doc(db, "users_ot", user.uid));
+            if (docSnap.exists()) {
+                const cloudData = docSnap.data();
+                const namaPanggilan = cloudData.nickName || cloudData.employeeName || "User";
+                globalBasicSalary = parseFloat(cloudData.basicSalaryProfile) || 2500;
+                
+                if (document.getElementById('dashboard-greeting')) {
+                    document.getElementById('dashboard-greeting').innerHTML = `Welcome back, <span class="text-primary fw-bold">${namaPanggilan}</span>`;
+                }
+                kemaskiniKadarGajiUI(globalBasicSalary);
+            }
+        } catch (error) { console.error("Ralat profil:", error); }
+
+    } else {
+        currentUser = null;
+        if (namaHalaman !== "login.html" && namaHalaman !== "") {
+            window.location.href = "login.html";
+        }
+    }
+});
+
+function kemaskiniKadarGajiUI(gaji) {
+    const kadarSejam = (gaji / 26) / 8;
+    const indicatorEl = document.getElementById('salary-indicator');
+    if (indicatorEl) indicatorEl.innerText = `Hourly Rate: RM ${kadarSejam.toFixed(2)}/hour`;
+}
+
+window.kendalikanAutentikasi = async function(event) {
+    event.preventDefault();
+    const email = document.getElementById('auth-email').value.trim();
+    const password = document.getElementById('auth-password').value;
+    const btn = document.getElementById('auth-submit-btn');
+    
+    btn.disabled = true; btn.innerText = "Processing...";
+    try {
+        if (isRegisterMode) await createUserWithEmailAndPassword(auth, email, password);
+        else await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+        tampilkanNotifikasi("Ralat: " + error.message, "error");
+        btn.disabled = false; btn.innerText = isRegisterMode ? "Register Now" : "Initialize Session";
+    }
 };
 
-window.padamDrafTempatan = function(index) {
-    const targetItem = otList[index];
-    if (targetItem && targetItem.groupId) {
-        otList = otList.filter(item => item.groupId !== targetItem.groupId);
-    } else {
-        otList.splice(index, 1);
-    }
-    window.renderTable();
-    window.paparNotification("Draf berjaya dikeluarkan.", "warning");
+window.toggleAuthMode = function() {
+    isRegisterMode = !isRegisterMode;
+    document.getElementById('auth-title').innerText = isRegisterMode ? "Create Account" : "Welcome Back";
+    document.getElementById('auth-desc').innerText = isRegisterMode ? "Sign up to configure your workspace." : "Authenticate to access your secure workspace.";
+    document.getElementById('auth-submit-btn').innerText = isRegisterMode ? "Register Now" : "Initialize Session";
+    document.getElementById('auth-toggle-text').innerText = isRegisterMode ? "Already have an account? Log In" : "Don't have an account? Request Access";
 };
+
+window.logKeluarSistem = async function() {
+    await signOut(auth); window.location.href = "login.html";
+};
+
+// ⚡ LOGIK AUTO-SPLIT CUTI UMUM (PUBLIC HOLIDAY) KEKAL DI SINI
+window.tambahKeSenaraiTempatan = function(event) {
+    event.preventDefault();
+    const tarikhKerja = document.getElementById('ot-date').value;
+    const tugasan = document.getElementById('ot-reason').value;
+    const gandaanRate = parseFloat(document.getElementById('ot-rate').value);
+    const jumlahJam = parseFloat(document.getElementById('ot-hours').value);
+    const kadarAsalSejam = (globalBasicSalary / 26) / 8;
+
+    if (gandaanRate === 3.0 && jumlahJam > 8) {
+        localOTDraft.push({ id: Date.now(), tarikhKerja, tugasan: `${tugasan} (PH - 8 Jam Pertama)`, gandaanRate: 2.0, jumlahJam: 8, bayaranHasil: 8 * kadarAsalSejam * 2.0 });
+        const lebihanJam = jumlahJam - 8;
+        localOTDraft.push({ id: Date.now() + 1, tarikhKerja, tugasan: `${tugasan} (PH - Lebihan Jam OT)`, gandaanRate: 3.0, jumlahJam: lebihanJam, bayaranHasil: lebihanJam * kadarAsalSejam * 3.0 });
+    } else {
+        const actualRate = (gandaanRate === 3.0) ? 2.0 : gandaanRate; // Fixed user logic for PH <= 8hrs
+        localOTDraft.push({ id: Date.now(), tarikhKerja, tugasan: gandaanRate === 3.0 ? `${tugasan} (PH - Waktu Normal)` : tugasan, gandaanRate: actualRate, jumlahJam, bayaranHasil: jumlahJam * kadarAsalSejam * actualRate });
+    }
+
+    document.getElementById('ot-input-form').reset();
+    document.getElementById('ot-hours').value = "10.5";
+    document.getElementById('ot-date').value = new Date().toISOString().split('T')[0];
+    binaSemulaJadualDraf();
+    tampilkanNotifikasi("Entri OT direkod ke draf.", "success");
+};
+
+window.padamDrafItem = function(idItem) {
+    localOTDraft = localOTDraft.filter(item => item.id !== idItem);
+    binaSemulaJadualDraf();
+};
+
+function binaSemulaJadualDraf() {
+    const tBody = document.getElementById('ot-table-body');
+    if (!tBody) return;
+    tBody.innerHTML = "";
+    
+    if(localOTDraft.length === 0) {
+        tBody.innerHTML = `<tr><td colspan="7" class="text-center text-secondary py-4">No drafts added yet.</td></tr>`;
+        return;
+    }
+
+    let t15=0, t20=0, t30=0, gt=0;
+    localOTDraft.forEach((item, idx) => {
+        if (item.gandaanRate === 1.5) t15 += item.jumlahJam;
+        if (item.gandaanRate === 2.0) t20 += item.jumlahJam;
+        if (item.gandaanRate === 3.0) t30 += item.jumlahJam;
+        gt += item.bayaranHasil;
+
+        tBody.innerHTML += `
+            <tr>
+                <td>${idx + 1}</td>
+                <td class="text-secondary small">${item.tarikhKerja}</td>
+                <td class="fw-semibold">${item.tugasan}</td>
+                <td><span class="badge bg-secondary bg-opacity-50">${item.gandaanRate.toFixed(1)}x</span></td>
+                <td>${item.jumlahJam.toFixed(1)}h</td>
+                <td class="fw-bold text-success">RM ${item.bayaranHasil.toFixed(2)}</td>
+                <td class="text-end"><button onclick="window.padamDrafItem(${item.id})" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash"></i></button></td>
+            </tr>`;
+    });
+
+    const kadar = (globalBasicSalary / 26) / 8;
+    document.getElementById('breakdown-1-5').innerText = `${t15.toFixed(1)}h`;
+    document.getElementById('breakdown-2-0').innerText = `${t20.toFixed(1)}h`;
+    document.getElementById('breakdown-3-0').innerText = `${t30.toFixed(1)}h`;
+    document.getElementById('grand-total-val').innerText = `RM ${gt.toFixed(2)}`;
+}
 
 window.simpanKeCloud = async function() {
-    if (!currentUser) return window.paparNotification("Sesi tamat: Sila log masuk semula.", "danger");
-    if (otList.length === 0) return window.paparNotification("Tiada rekod draf OT aktif untuk disimpan.", "warning");
+    if (localOTDraft.length === 0) return tampilkanNotifikasi("Tiada rekod draf.", "error");
+    const btn = document.querySelector('.accent-cloud-btn');
+    btn.disabled = true; btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
 
     try {
         const docRef = doc(db, "users_ot", currentUser.uid);
         const docSnap = await getDoc(docRef);
-        let existingRecords = [];
-        if (docSnap.exists() && docSnap.data().activeRecords) {
-            existingRecords = docSnap.data().activeRecords;
-        }
+        let activeRecords = (docSnap.exists() && docSnap.data().activeRecords) ? docSnap.data().activeRecords : [];
 
-        const combinedRecords = existingRecords.concat(otList);
-        await setDoc(docRef, {
-            activeRecords: combinedRecords,
-            lastCommittedTime: new Date().toISOString()
-        }, { merge: true });
-        
-        window.paparNotification("Semua rekod aktif berjaya dihantar ke Cloud!", "success");
-        otList = []; 
-        window.renderTable(); 
-    } catch (error) {
-        window.paparNotification("Gagal menyimpan ke cloud: " + error.message, "danger");
-    }
+        localOTDraft.forEach(item => {
+            const parts = item.tarikhKerja.split('-');
+            activeRecords.push({ otDate: `${parts[2]}/${parts[1]}/${parts[0]}`, taskName: item.tugasan, rateFactor: item.gandaanRate, hoursCount: item.jumlahJam });
+        });
+
+        await setDoc(docRef, { activeRecords, lastCommittedTime: serverTimestamp() }, { merge: true });
+        tampilkanNotifikasi("Disinkronkan ke Cloud.", "success");
+        localOTDraft = []; binaSemulaJadualDraf();
+    } catch (e) { tampilkanNotifikasi("Ralat: " + e.message, "error"); }
+    finally { btn.disabled = false; btn.innerHTML = `<i class="fas fa-cloud-upload-alt me-1"></i> Commit to Cloud`; }
 };
 
-window.renderTable = function() {
-    const tableBody = document.getElementById('ot-table-body');
-    if (!tableBody) return;
-    tableBody.innerHTML = '';
-    
-    let hours15 = 0, pay15 = 0; let hours20 = 0, pay20 = 0; let hours30 = 0, pay30 = 0;
-    let grandTotalPay = 0;
-    const hourlyRate = userBasicSalary / 26 / 8;
-
-    const indicatorEl = document.getElementById('salary-indicator');
-    if (indicatorEl) indicatorEl.innerText = `Hourly Rate: RM ${hourlyRate.toFixed(2)}/hour`;
-
-    if (otList.length === 0) {
-        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px 0;">No active draft records found.</td></tr>`;
-        document.getElementById('breakdown-1-5').innerText = "0.0 hours (RM 0.00)";
-        document.getElementById('breakdown-2-0').innerText = "0.0 hours (RM 0.00)";
-        document.getElementById('breakdown-3-0').innerText = "0.0 hours (RM 0.00)";
-        document.getElementById('grand-total-val').innerText = "RM 0.00";
-        return;
-    }
-
-    otList.forEach((row, idx) => {
-        const itemResultPay = hourlyRate * row.hoursCount * row.rateFactor;
-        grandTotalPay += itemResultPay;
-
-        if (row.rateFactor === 1.5) { hours15 += row.hoursCount; pay15 += itemResultPay; }
-        else if (row.rateFactor === 2.0) { hours20 += row.hoursCount; pay20 += itemResultPay; }
-        else if (row.rateFactor === 3.0) { hours30 += row.hoursCount; pay30 += itemResultPay; }
-
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="color: var(--text-muted); font-variant-numeric: tabular-nums;">${idx + 1}</td>
-            <td style="color: var(--text-muted); font-weight: 500;">${row.otDate || "-"}</td>
-            <td style="font-weight: 500;">${row.taskName}</td>
-            <td style="font-weight: 600; color: var(--brand-blue);">${row.rateFactor.toFixed(1)}x</td>
-            <td style="font-variant-numeric: tabular-nums;">${row.hoursCount.toFixed(1)} hrs</td>
-            <td style="font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums;">RM ${itemResultPay.toFixed(2)}</td>
-            <td style="text-align: right;"><button onclick="window.padamDrafTempatan(${idx})" class="row-delete-trigger"><i class="fas fa-times"></i> Clear</button></td>
-        `;
-        tableBody.appendChild(tr);
-    });
-
-    document.getElementById('breakdown-1-5').innerText = `${hours15.toFixed(1)} hours (RM ${pay15.toFixed(2)})`;
-    document.getElementById('breakdown-2-0').innerText = `${hours20.toFixed(1)} hours (RM ${pay20.toFixed(2)})`;
-    document.getElementById('breakdown-3-0').innerText = `${hours30.toFixed(1)} hours (RM ${pay30.toFixed(2)})`;
-    document.getElementById('grand-total-val').innerText = `RM ${grandTotalPay.toFixed(2)}`;
-};
-
-/* --- AUTH UI LOGIC UNTUK LOGIN.HTML --- */
-window.toggleAuthMode = function() {
-    isLoginMode = !isLoginMode;
-    const submitBtn = document.getElementById('auth-submit-btn');
-    const toggleText = document.getElementById('auth-toggle-text');
-    if (isLoginMode) {
-        if (submitBtn) submitBtn.innerText = "Log In";
-        if (toggleText) toggleText.innerText = "Don't have an account? Register Now";
-    } else {
-        if (submitBtn) submitBtn.innerText = "Register Account";
-        if (toggleText) toggleText.innerText = "Already have an account? Log In";
-    }
-};
-
-window.kendalikanAutentikasi = async function(event) {
-    if (event) event.preventDefault();
-    const email = document.getElementById('auth-email')?.value;
-    const password = document.getElementById('auth-password')?.value;
-    try {
-        if (isLoginMode) { 
-            await signInWithEmailAndPassword(auth, email, password); 
-            window.paparNotification("Selamat kembali! Memuatkan akaun...", "success");
-        } else { 
-            await createUserWithEmailAndPassword(auth, email, password);
-            window.paparNotification("Pendaftaran berjaya! Sila isi profi anda.", "success");
-        }
-    } catch (error) { window.paparNotification("Ralat Autentikasi: " + error.message, "danger"); }
-};
-
-window.logKeluarSistem = async function() {
-    try { 
-        await signOut(auth); 
-        window.location.href = "login.html"; // Terus hantar ke login page bila logout
-    } catch (error) { console.error(error); }
-};
-
-window.toggleTheme = function() {
-    const body = document.body;
-    const themeIcon = document.getElementById('theme-icon');
-    if (body.classList.contains('dark-theme')) {
-        body.classList.replace('dark-theme', 'light-theme');
-        if (themeIcon) themeIcon.classList.replace('fa-moon', 'fa-sun');
-    } else {
-        body.classList.replace('light-theme', 'dark-theme');
-        if (themeIcon) themeIcon.classList.replace('fa-sun', 'fa-moon');
-    }
-};
-
-function processSystemClock() {
-    const clockEl = document.getElementById('current-time');
-    if (clockEl) {
-        const timestampSiri = new Date();
-        clockEl.innerText = timestampSiri.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    }
+function tampilkanNotifikasi(mesej, jenis = "success") {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `p-3 rounded-3 shadow-sm text-white animate-popup mb-2 d-flex align-items-center gap-2 ${jenis === 'success' ? 'bg-success' : 'bg-danger'}`;
+    toast.innerHTML = `<i class="fas ${jenis === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${mesej}`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = "0"; setTimeout(() => toast.remove(), 300); }, 3000);
 }
 
-/* =========================================================================
-   REAL-TIME LISTENER (DENGAN PAGE ROUTER PINTAR)
-   ========================================================================= */
-onAuthStateChanged(auth, async (user) => {
-    const isLoginPage = document.getElementById('auth-container') !== null;
-    const dashboardContainer = document.getElementById('dashboard-container');
-    const pageLoader = document.getElementById('page-loader');
-
-    if (user) {
-        currentUser = user;
-        
-        // 1. Jika dah log masuk tapi berada di login.html, tendang ke index.html
-        if (isLoginPage) {
-            window.location.href = "index.html";
-            return;
-        }
-
-        // 2. Jika berada di Dashboard (index.html)
-        if (dashboardContainer) {
-            try {
-                const docRef = doc(db, "users_ot", user.uid);
-                const docSnap = await getDoc(docRef);
-                
-                if (docSnap.exists() && docSnap.data().basicSalaryProfile) {
-                    const cloudData = docSnap.data();
-                    otList = []; 
-                    userBasicSalary = parseFloat(cloudData.basicSalaryProfile) || 2500;
-                    
-                    // Sembunyikan loader, tunjukkan dashboard
-                    if (pageLoader) pageLoader.style.display = 'none';
-                    dashboardContainer.style.display = 'block';
-                    
-                    const logoutBtn = document.getElementById('logout-btn');
-                    const menuTriggerBtn = document.getElementById('menu-trigger-btn');
-                    if (logoutBtn) logoutBtn.style.display = 'inline-block';
-                    if (menuTriggerBtn) menuTriggerBtn.style.display = 'flex';
-                    
-                    const greetingEl = document.getElementById('dashboard-greeting');
-                    if (greetingEl) greetingEl.innerText = `Hi, ${cloudData.nickName || cloudData.employeeName || "User"}!`;
-                } else { 
-                    window.location.href = "profile-settings.html";
-                    return;
-                }
-            } catch (error) { console.error(error); }
-        }
-    } else {
-        currentUser = null; 
-        otList = [];
-        // Jika belum log masuk dan BUKAN di login.html, tendang ke login.html
-        if (!isLoginPage) {
-            window.location.href = "login.html";
-        }
-    }
-    
-    if (!isLoginPage) {
-        window.renderTable();
-        tetapkanTarikhDefault();
-    }
-});
-
 document.addEventListener('DOMContentLoaded', () => {
-    setInterval(processSystemClock, 1000);
-    processSystemClock();
-    if (!document.getElementById('auth-container')) tetapkanTarikhDefault();
+    initPremiumUI();
+    const today = new Date().toISOString().split('T')[0];
+    if (document.getElementById('ot-date')) document.getElementById('ot-date').value = today;
 });

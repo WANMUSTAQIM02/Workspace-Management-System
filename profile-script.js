@@ -2,97 +2,52 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/fireba
 import { getAuth, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAYQ9UKq6teDdfleoCfG_-kjiIf6Gj0DNc", 
-  authDomain: "ot-tracker-pro-64415.firebaseapp.com",
-  projectId: "ot-tracker-pro-64415",
-  storageBucket: "ot-tracker-pro-64415.firebasestorage.app",
-  messagingSenderId: "941888808954",
-  appId: "1:941888808954:web:e40f19a0cec8a2f4272643"
-};
-
+const firebaseConfig = { apiKey: "AIzaSyAYQ9UKq6teDdfleoCfG_-kjiIf6Gj0DNc", authDomain: "ot-tracker-pro-64415.firebaseapp.com", projectId: "ot-tracker-pro-64415", storageBucket: "ot-tracker-pro-64415.firebasestorage.app", messagingSenderId: "941888808954", appId: "1:941888808954:web:e40f19a0cec8a2f4272643" };
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 let currentUser = null;
 
-window.toggleSidebar = function() {
-    const sidebar = document.getElementById('sidebar-menu');
-    const overlay = document.getElementById('sidebar-overlay');
-    if (sidebar) sidebar.classList.toggle('active');
-    if (overlay) overlay.classList.toggle('active');
-};
-
-window.toggleTheme = function() {
-    const body = document.body;
-    const themeIcon = document.getElementById('theme-icon');
-    if (body.classList.contains('dark-theme')) {
-        body.classList.replace('dark-theme', 'light-theme');
-        if (themeIcon) themeIcon.classList.replace('fa-moon', 'fa-sun');
-    } else {
-        body.classList.replace('light-theme', 'dark-theme');
-        if (themeIcon) themeIcon.classList.replace('fa-sun', 'fa-moon');
+// PREMIUM UI ENGINE INJECTION
+function initPremiumUI() {
+    const canvas = document.getElementById('bg-canvas');
+    if(canvas) {
+        const scene = new THREE.Scene(); const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight);
+        const geom = new THREE.BufferGeometry(); const posArray = new Float32Array(500 * 3);
+        for(let i=0; i<500*3; i++) posArray[i] = (Math.random() - 0.5) * 10;
+        geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        const mat = new THREE.PointsMaterial({ size: 0.005, color: 0x0d6efd }); const mesh = new THREE.Points(geom, mat); scene.add(mesh); camera.position.z = 3;
+        function animate() { requestAnimationFrame(animate); mesh.rotation.y += 0.001; renderer.render(scene, camera); } animate();
+        gsap.to(".gsap-element", { y: 0, opacity: 1, duration: 0.8, ease: "power3.out" });
     }
-};
+}
 
-window.logKeluarSistem = async function() {
-    try { await signOut(auth); window.location.href = "index.html"; } catch (error) { console.error(error); }
-};
+window.logKeluarSistem = async function() { try { await signOut(auth); window.location.href = "login.html"; } catch (e) { console.error(e); } };
 
 window.kemaskiniProfilCloud = async function(event) {
-    if (event) event.preventDefault();
-    if (!currentUser) return;
-
+    if (event) event.preventDefault(); if (!currentUser) return;
     const nameVal = document.getElementById('profile-name').value;
     const nickNameVal = document.getElementById('profile-nickname').value;
     const salaryVal = parseFloat(document.getElementById('profile-salary').value) || 2500;
     const staffIdVal = document.getElementById('profile-staff-id').value;
-
-    const submitBtn = event.target.querySelector('button[type="submit"]');
-    if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
-    }
-
+    const submitBtn = document.querySelector('#profile-settings-form button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`; }
     try {
-        await setDoc(doc(db, "users_ot", currentUser.uid), {
-            employeeName: nameVal,
-            nickName: nickNameVal, 
-            basicSalaryProfile: salaryVal,
-            staffId: staffIdVal
-        }, { merge: true });
-
+        await setDoc(doc(db, "users_ot", currentUser.uid), { employeeName: nameVal, nickName: nickNameVal, basicSalaryProfile: salaryVal, staffId: staffIdVal }, { merge: true });
         alert("Profile update synchronized successfully.");
-    } catch (error) {
-        alert("Failed to update profile configurations: " + error.message);
-    } finally {
-        if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = `<i class="fas fa-save" style="margin-right: 8px;"></i> Save Modifications`;
-        }
-    }
+    } catch (error) { alert("Failed to update: " + error.message); } 
+    finally { if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = `<i class="fas fa-save me-2"></i>Save Modifications`; } }
 };
 
-function processSystemClock() {
-    const clockEl = document.getElementById('current-time');
-    if (clockEl) {
-        const timestampSiri = new Date();
-        clockEl.innerText = timestampSiri.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    }
-}
-
 onAuthStateChanged(auth, async (user) => {
+    const pageLoader = document.getElementById('page-loader'); const mainUi = document.getElementById('main-ui');
     if (user) {
         currentUser = user;
-        if (document.getElementById('profile-email-display')) {
-            document.getElementById('profile-email-display').value = user.email;
-        }
-
+        if (document.getElementById('profile-email-display')) document.getElementById('profile-email-display').value = user.email;
         try {
-            const docRef = doc(db, "users_ot", user.uid);
-            const docSnap = await getDoc(docRef);
-            
+            const docSnap = await getDoc(doc(db, "users_ot", user.uid));
             if (docSnap.exists()) {
                 const cloudData = docSnap.data();
                 if (document.getElementById('profile-name')) document.getElementById('profile-name').value = cloudData.employeeName || "";
@@ -100,36 +55,17 @@ onAuthStateChanged(auth, async (user) => {
                 if (document.getElementById('profile-salary')) document.getElementById('profile-salary').value = cloudData.basicSalaryProfile || "2500";
                 if (document.getElementById('profile-staff-id')) document.getElementById('profile-staff-id').value = cloudData.staffId || "";
             }
-        } catch (error) { console.error(error); }
-    } else {
-        window.location.href = "index.html";
-    }
-});
-
-document.addEventListener('DOMContentLoaded', () => {
-    setInterval(processSystemClock, 1000);
-    processSystemClock();
-    
-    const profileForm = document.getElementById('profile-settings-form');
-    if (profileForm) {
-        profileForm.addEventListener('submit', window.kemaskiniProfilCloud);
-    }
-});
-onAuthStateChanged(auth, async (user) => {
-    const pageLoader = document.getElementById('page-loader');
-    const profileContainer = document.getElementById('profile-container');
-
-    if (user) {
-        // ... masukkan data sedia ada dari Firestore ke dalam input borang ...
+        } catch (error) { console.error("Ralat profil:", error); }
         
-        // Selesai memetakan data, tutup loader dan paparkan content
-        if (pageLoader) pageLoader.style.display = 'none';
-        if (profileContainer) profileContainer.style.display = 'block';
-
-        // Tunjukkan navigasi sistem
-        document.getElementById('logout-btn').style.display = 'inline-block';
-        document.getElementById('menu-trigger-btn').style.display = 'flex';
-    } else {
-        window.location.href = "login.html";
-    }
+        // === FIX UTAMA DI SINI ===
+        if (pageLoader) {
+            pageLoader.classList.remove('d-flex'); // Buang d-flex (sebab d-flex ada !important)
+            pageLoader.style.display = 'none';     // Sembunyikan loader
+        }
+        if (mainUi) mainUi.style.display = 'flex';
+        // =========================
+        
+    } else { window.location.href = "login.html"; }
 });
+
+document.addEventListener('DOMContentLoaded', initPremiumUI);
