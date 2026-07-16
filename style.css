@@ -107,3 +107,25 @@ body {
     .fab-add { bottom: 120px !important; right: 20px !important; }
 }
 @media (min-width: 992px) { .mobile-bottom-nav { display: none !important; } }
+
+/* =========================================================================
+   FIX 1: HILANGKAN SCROLLBAR SEPENUHNYA (MACAM NATIVE APP)
+   ========================================================================= */
+::-webkit-scrollbar { 
+    display: none !important; /* Untuk Chrome, Safari, dan Opera */
+}
+body, .table-responsive {
+    -ms-overflow-style: none !important; /* Untuk IE dan Edge */
+    scrollbar-width: none !important; /* Untuk Firefox */
+}
+
+/* =========================================================================
+   FIX 2: NAIKKAN KEDUDUKAN ALERT/TOAST PADA MOBILE
+   ========================================================================= */
+@media (max-width: 991px) {
+    #toast-container { 
+        bottom: 120px !important; /* Naikkan melepasi paras bottom nav bar */
+        right: 15px !important; 
+        z-index: 10001 !important; /* Pastikan ia sentiasa berada di lapisan paling atas */
+    }
+}
