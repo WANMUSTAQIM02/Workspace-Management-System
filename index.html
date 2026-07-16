@@ -47,7 +47,38 @@
         </div>
         
         <div class="row g-4 mb-5">
-            <div class="col-12">
+            <!-- FORM KAD: HANYA MUNCUL DI DESKTOP (d-none d-lg-block) -->
+            <div class="col-lg-4 col-xl-3 d-none d-lg-block gsap-element">
+                <div class="glass-panel p-4 h-100">
+                    <h5 class="fw-bold mb-4"><i class="fas fa-edit text-primary me-2"></i>Log OT Hours</h5>
+                    <form id="desk-form" onsubmit="window.tambahKeSenaraiTempatan(event, 'desk')">
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Work Date</label>
+                            <input type="date" id="desk-date" class="form-control bg-dark text-white border-secondary" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Task Description</label>
+                            <input type="text" id="desk-reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Server Maintenance" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Rate Multiplier</label>
+                            <select id="desk-rate" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="1.5">Normal Day & Off Day (1.5x)</option>
+                                <option value="2.0">Rest Day / Sunday (2.0x)</option>
+                                <option value="3.0">Public Holiday (3.0x)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label text-secondary small fw-semibold">Total Hours Worked</label>
+                            <input type="number" id="desk-hours" class="form-control bg-dark text-white border-secondary" value="10.5" step="0.1" min="0.1" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Add to Draft</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- RUANGAN STATISTIK & JADUAL -->
+            <div class="col-lg-8 col-xl-9 col-12">
                 <!-- Ringkasan Gaji -->
                 <div class="row g-3 mb-4">
                     <div class="col-md-3 col-6 gsap-element"><div class="glass-panel p-3 text-center"><small class="text-secondary d-block">Rate 1.5x</small><strong id="breakdown-1-5">0.0h</strong></div></div>
@@ -61,7 +92,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                         <h5 class="fw-bold mb-0"><i class="fas fa-list-ul text-primary me-2"></i>Pending Draft Ledger</h5>
                         <div>
-                            <button class="btn btn-outline-primary btn-sm fw-bold px-3 py-2 shadow-sm d-none d-lg-inline-block me-2" data-bs-toggle="modal" data-bs-target="#ot-modal"><i class="fas fa-plus me-1"></i> Log OT</button>
+                            <!-- Butang + Log OT dah dibuang, hanya tinggal Commit to Cloud -->
                             <button onclick="window.simpanKeCloud()" class="btn btn-success btn-sm fw-bold px-3 py-2 shadow-sm"><i class="fas fa-cloud-upload-alt me-1"></i> Commit to Cloud</button>
                         </div>
                     </div>
@@ -73,7 +104,7 @@
         </div>
     </div>
 
-    <!-- OT Input Modal (Popup) -->
+    <!-- OT Input Modal (Popup Khas Untuk Mobile) -->
     <div class="modal fade" id="ot-modal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content glass-panel border-0">
@@ -82,18 +113,18 @@
                         <h5 class="fw-bold mb-0"><i class="fas fa-clock text-primary me-2"></i>Log OT Hours</h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <form id="ot-input-form" onsubmit="window.tambahKeSenaraiTempatan(event)">
-                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Work Date</label><input type="date" id="ot-date" class="form-control bg-dark text-white border-secondary" required></div>
-                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Task Description</label><input type="text" id="ot-reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Server Maintenance" required></div>
+                    <form id="mob-form" onsubmit="window.tambahKeSenaraiTempatan(event, 'mob')">
+                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Work Date</label><input type="date" id="mob-date" class="form-control bg-dark text-white border-secondary" required></div>
+                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Task Description</label><input type="text" id="mob-reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Server Maintenance" required></div>
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-semibold">Rate Multiplier</label>
-                            <select id="ot-rate" class="form-select bg-dark text-white border-secondary" required>
+                            <select id="mob-rate" class="form-select bg-dark text-white border-secondary" required>
                                 <option value="1.5">Normal Day & Off Day (1.5x)</option>
                                 <option value="2.0">Rest Day / Sunday (2.0x)</option>
                                 <option value="3.0">Public Holiday (3.0x)</option>
                             </select>
                         </div>
-                        <div class="mb-4"><label class="form-label text-secondary small fw-semibold">Total Hours Worked</label><input type="number" id="ot-hours" class="form-control bg-dark text-white border-secondary" value="10.5" step="0.1" min="0.1" required></div>
+                        <div class="mb-4"><label class="form-label text-secondary small fw-semibold">Total Hours Worked</label><input type="number" id="mob-hours" class="form-control bg-dark text-white border-secondary" value="10.5" step="0.1" min="0.1" required></div>
                         <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Add to Draft</button>
                     </form>
                 </div>

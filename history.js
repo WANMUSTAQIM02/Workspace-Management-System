@@ -58,7 +58,6 @@ onAuthStateChanged(auth, async (user) => {
                 basicSalary = parseFloat(data.basicSalaryProfile) || 0;
                 const hourlyRate = (basicSalary / 26 / 8).toFixed(2);
                 
-                document.getElementById('history-greeting').innerText = `Welcome back, ${data.nicknameProfile || 'User'}!`;
                 document.getElementById('salary-indicator').innerText = `Hourly Rate: RM ${hourlyRate}`;
                 
                 globalActiveRecords = data.activeRecords || [];
@@ -79,7 +78,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // =========================================================================
-// FILTER & RENDER LOGIC (FIXED OLD DATA & 15HB CUT-OFF PAYROLL)
+// FILTER, SORT & RENDER LOGIC
 // =========================================================================
 window.tapisSejarahOT = function() {
     const tbody = document.getElementById('history-table-body');
@@ -119,8 +118,6 @@ window.tapisSejarahOT = function() {
         
         // Jadikan format 2 digit (cth: "08" untuk Ogos) supaya padan dengan dropdown
         let targetMonthStr = String(targetPayrollMonth).padStart(2, '0');
-
-        // 3. Pengecaman Nama Task (Sapu bersih semua jenis variable lama kau)
         let taskName = row.taskDesc || row.taskAssigned || row.taskName || row.task || row.reason || "No Description";
 
         // Logik Penapis
@@ -128,7 +125,6 @@ window.tapisSejarahOT = function() {
         let searchMatch = taskName.toLowerCase().includes(searchText);
 
         if (monthMatch && searchMatch) {
-            // Sapu bersih variable lama untuk hours dan rate juga
             let hours = parseFloat(row.hoursCount || row.hours) || 0;
             let rate = parseFloat(row.rateFactor || row.rate) || 1.5;
             let pay = hourlyRate * hours * rate;
@@ -139,7 +135,9 @@ window.tapisSejarahOT = function() {
                 task: taskName,
                 rate: rate,
                 hours: hours,
-                pay: pay
+                pay: pay,
+                // Nilai masa komputasi untuk tujuan susunan (Sorting)
+                sortDateValue: new Date(year, month - 1, day).getTime() 
             });
 
             totalHours += hours;
@@ -147,7 +145,12 @@ window.tapisSejarahOT = function() {
         }
     });
 
-    // Kemaskini UI
+    // ==========================================
+    // FUNGSI SORTING (TERBARU -> LAMA)
+    // ==========================================
+    filteredRecords.sort((a, b) => b.sortDateValue - a.sortDateValue);
+
+    // Kemaskini UI Jadual
     if (filteredRecords.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="text-center text-secondary py-4">No matching history logs found.</td></tr>`;
     } else {
@@ -160,9 +163,9 @@ window.tapisSejarahOT = function() {
             tbody.innerHTML += `
                 <tr>
                     <td>${i + 1}</td>
-                    <td class="text-secondary small">${item.date}</td>
+                    <td><span class="badge bg-secondary bg-opacity-50 px-2 py-1">${item.date}</span></td>
                     <td class="fw-semibold">${item.task}</td>
-                    <td><span class="badge ${badgeColor} bg-opacity-50">${item.rate.toFixed(1)}x</span></td>
+                    <td><span class="badge ${badgeColor} bg-opacity-50 px-2 py-1">${item.rate.toFixed(1)}x</span></td>
                     <td>${item.hours.toFixed(1)}h</td>
                     <td class="text-success fw-bold">RM ${item.pay.toFixed(2)}</td>
                     <td class="text-end">
@@ -245,6 +248,48 @@ window.eksportLaporan = function() {
     document.body.removeChild(link);
     showPremiumToast("Exporting report...", "success");
 };
+
+// =========================================================================
+// PREMIUM BACKGROUND ANIMATION
+// =========================================================================
+function initPremiumUI() {
+    const canvas = document.getElementById('bg-canvas');
+    if(canvas && typeof THREE !== 'undefined') {
+        const scene = new THREE.Scene(); 
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true }); 
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        const geom = new THREE.BufferGeometry(); 
+        const posArray = new Float32Array(500 * 3);
+        for(let i=0; i<500*3; i++) posArray[i] = (Math.random() - 0.5) * 10;
+        geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const mat = new THREE.PointsMaterial({ size: 0.005, color: 0x0d6efd }); 
+        const mesh = new THREE.Points(geom, mat); 
+        scene.add(mesh); 
+        camera.position.z = 3;
+        
+        function animate() { 
+            requestAnimationFrame(animate); 
+            mesh.rotation.y += 0.001; 
+            renderer.render(scene, camera); 
+        } 
+        animate();
+        
+        // Pastikan background kekal fit bila saiz window bertukar
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+}
+
+// Mulakan background masa page siap di-load
+document.addEventListener('DOMContentLoaded', () => {
+    initPremiumUI(); 
+});
 
 // =========================================================================
 // LOGOUT UTILITY

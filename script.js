@@ -66,20 +66,21 @@ onAuthStateChanged(auth, async (user) => {
             console.error("Error fetching user data:", error);
         }
     } else {
-        // Kalau tak login, tendang balik ke login.html
         window.location.replace("login.html");
     }
 });
 
 // =========================================================================
-// DRAFT MANAGEMENT LOGIC
+// DRAFT MANAGEMENT LOGIC (KEMASKINI UNTUK 2 BORANG)
 // =========================================================================
-window.tambahKeSenaraiTempatan = function(e) {
+window.tambahKeSenaraiTempatan = function(e, source) {
     e.preventDefault();
-    const dateInput = document.getElementById('ot-date').value;
-    const reasonInput = document.getElementById('ot-reason').value.trim();
-    const rateInput = parseFloat(document.getElementById('ot-rate').value);
-    const hoursInput = parseFloat(document.getElementById('ot-hours').value);
+    
+    // Tarik nilai mengikut sumber form (desk atau mob)
+    const dateInput = document.getElementById(`${source}-date`).value;
+    const reasonInput = document.getElementById(`${source}-reason`).value.trim();
+    const rateInput = parseFloat(document.getElementById(`${source}-rate`).value);
+    const hoursInput = parseFloat(document.getElementById(`${source}-hours`).value);
 
     draftOTList.push({ 
         otDate: dateInput, 
@@ -88,13 +89,20 @@ window.tambahKeSenaraiTempatan = function(e) {
         hoursCount: hoursInput 
     });
 
-    document.getElementById('ot-input-form').reset();
-    document.getElementById('ot-date').value = new Date().toISOString().split('T')[0];
+    // Reset isi form
+    e.target.reset();
     
-    const modalEl = document.getElementById('ot-modal');
-    if(modalEl) {
-        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-        modalInstance.hide();
+    // Set tarikh balik ke hari ini
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById(`${source}-date`).value = today;
+    
+    // Tutup Modal JIKA sumber dari borang mobile sahaja
+    if(source === 'mob') {
+        const modalEl = document.getElementById('ot-modal');
+        if(modalEl) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+            modalInstance.hide();
+        }
     }
     
     renderDraftTable();
@@ -258,18 +266,19 @@ function initPremiumUI() {
 document.addEventListener('DOMContentLoaded', () => {
     initPremiumUI(); 
     
-    const otRateSelect = document.getElementById('ot-rate');
-    if (otRateSelect && typeof Choices !== 'undefined') {
-        new Choices(otRateSelect, { 
-            searchEnabled: false, 
-            itemSelectText: '', 
-            shouldSort: false 
-        });
-    }
+    // Init Choices.js untuk kedua-dua dropdown
+    const mobRateSelect = document.getElementById('mob-rate');
+    const deskRateSelect = document.getElementById('desk-rate');
+    const choicesOptions = { searchEnabled: false, itemSelectText: '', shouldSort: false };
     
-    const dateInput = document.getElementById('ot-date');
-    if(dateInput) {
-        const today = new Date().toISOString().split('T')[0];
-        dateInput.value = today;
-    }
+    if (mobRateSelect && typeof Choices !== 'undefined') new Choices(mobRateSelect, choicesOptions);
+    if (deskRateSelect && typeof Choices !== 'undefined') new Choices(deskRateSelect, choicesOptions);
+    
+    // Set tarikh default pada hari ini untuk kedua-dua form
+    const today = new Date().toISOString().split('T')[0];
+    const mobDate = document.getElementById('mob-date');
+    const deskDate = document.getElementById('desk-date');
+    
+    if(mobDate) mobDate.value = today;
+    if(deskDate) deskDate.value = today;
 });

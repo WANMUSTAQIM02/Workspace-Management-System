@@ -16,6 +16,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Canvas untuk Background Partikel -->
     <canvas id="bg-canvas"></canvas>
     
     <nav class="navbar navbar-expand-lg glass-nav fixed-top py-3">
@@ -37,8 +38,14 @@
 
     <div class="container" style="padding-top: 120px; padding-bottom: 50px;">
         <div class="row mb-4 gsap-element align-items-center">
-            <div class="col-md-8"><h1 class="fw-bold mb-1">History & Reports</h1><p class="text-secondary" id="history-greeting">Loading archive session...</p></div>
-            <div class="col-md-4 text-md-end"><div id="salary-indicator" class="d-inline-block bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 fw-bold border border-primary border-opacity-25">Hourly Rate: RM --.--</div></div>
+            <div class="col-md-8">
+                <h1 class="fw-bold mb-1">History & Reports</h1>
+                <!-- Subtitle ditukar jadi lebih profesional, tak ada lagi "Welcome back" -->
+                <p class="text-secondary mb-0">Committed overtime records and payout analysis.</p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <div id="salary-indicator" class="d-inline-block bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 fw-bold border border-primary border-opacity-25">Hourly Rate: RM --.--</div>
+            </div>
         </div>
         <div class="glass-panel p-4 mb-4 gsap-element">
             <div class="row g-3">

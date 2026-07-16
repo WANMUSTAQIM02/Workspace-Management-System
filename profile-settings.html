@@ -18,7 +18,6 @@
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
-    <!-- Loader Removed as per previous fix -->
 
     <nav class="navbar navbar-expand-lg glass-nav fixed-top py-3" id="main-ui">
         <div class="container">
@@ -42,7 +41,12 @@
             <div class="col-lg-8">
                 <div class="glass-panel p-5 tilt-card" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.05">
                     <div class="tilt-card-content">
-                        <div class="d-flex align-items-center gap-3 mb-4 border-bottom border-secondary pb-3"><div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-3"><i class="fas fa-user-sliders"></i></div><div><h3 class="fw-bold mb-0">Profile & Salary Settings</h3><p class="text-secondary small mb-0">Configure your credentials & salary metrics.</p></div></div>
+                        
+                        <!-- BAHAGIAN 1: PROFILE & SALARY SETTINGS -->
+                        <div class="d-flex align-items-center gap-3 mb-4 border-bottom border-secondary pb-3">
+                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle fs-3"><i class="fas fa-user-sliders"></i></div>
+                            <div><h3 class="fw-bold mb-0">Profile & Salary Settings</h3><p class="text-secondary small mb-0">Configure your credentials & salary metrics.</p></div>
+                        </div>
                         <form id="profile-settings-form" onsubmit="window.kemaskiniProfilCloud(event)">
                             <div class="row g-4 mb-4">
                                 <div class="col-md-6"><label class="form-label text-secondary small fw-bold">Full Employee Name</label><input type="text" id="profile-name" class="form-control bg-dark text-white border-secondary" required></div>
@@ -53,6 +57,27 @@
                             </div>
                             <div class="text-end"><button type="submit" class="btn btn-primary px-4 fw-bold"><i class="fas fa-save me-2"></i>Save Modifications</button></div>
                         </form>
+
+                        <!-- BAHAGIAN 2: SECURITY & EMAIL SETTINGS (Baru ditambah) -->
+                        <hr class="border-secondary opacity-50 my-5">
+                        
+                        <div class="d-flex align-items-center gap-3 mb-4 border-bottom border-secondary pb-3">
+                            <div class="bg-warning bg-opacity-10 text-warning p-3 rounded-circle fs-3"><i class="fas fa-shield-alt"></i></div>
+                            <div><h3 class="fw-bold mb-0">Security Settings</h3><p class="text-secondary small mb-0">Update your login credentials.</p></div>
+                        </div>
+                        <form id="change-email-form" onsubmit="window.tukarEmailAkaun(event)">
+                            <div class="row g-4 mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label text-secondary small fw-bold">New Email Address</label>
+                                    <input type="email" id="profile-new-email" class="form-control bg-dark text-white border-secondary" placeholder="Enter new email address" required>
+                                </div>
+                                <div class="col-md-4 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-warning w-100 fw-bold"><i class="fas fa-envelope me-2"></i>Update Email</button>
+                                </div>
+                            </div>
+                            <small class="text-secondary d-block"><i class="fas fa-info-circle me-1 text-warning"></i>A verification link will be sent to your new email. You will be logged out automatically for security purposes.</small>
+                        </form>
+
                     </div>
                 </div>
             </div>
