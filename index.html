@@ -92,5 +92,18 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script type="module" src="script.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('ServiceWorker berjaya didaftarkan dengan skop: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('Pendaftaran ServiceWorker gagal: ', err);
+            });
+        });
+      }
+    </script>
 </body>
 </html>
