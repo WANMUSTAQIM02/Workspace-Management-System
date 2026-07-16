@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace Pro | OT Dashboard</title>
     <!-- PWA & App Links -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#050505">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Workspace Pro">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workspace Pro | OT Dashboard</title>
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
@@ -19,6 +19,9 @@
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
+    
+    <!-- Butang Terapung (FAB) Khas Untuk Mobile -->
+    <button class="fab-add bg-primary d-lg-none" data-bs-toggle="modal" data-bs-target="#ot-modal"><i class="fas fa-plus"></i></button>
 
     <nav class="navbar navbar-expand-lg glass-nav fixed-top py-3">
         <div class="container">
@@ -42,36 +45,57 @@
             <div class="col-md-8"><h1 class="fw-bold mb-1">Workspace Dashboard</h1><p class="text-secondary" id="dashboard-greeting">Loading session...</p></div>
             <div class="col-md-4 text-md-end"><div id="salary-indicator" class="d-inline-block bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-3 fw-bold border border-primary border-opacity-25">Hourly Rate: RM --.--/hour</div></div>
         </div>
+        
         <div class="row g-4 mb-5">
-            <div class="col-lg-4 gsap-element">
-                <div class="glass-panel p-4 h-100 tilt-card" data-tilt data-tilt-max="2" data-tilt-glare data-tilt-max-glare="0.05">
-                    <div class="tilt-card-content">
-                        <h5 class="fw-bold mb-4"><i class="fas fa-clock text-primary me-2"></i>Log OT Hours</h5>
-                        <form id="ot-input-form" onsubmit="window.tambahKeSenaraiTempatan(event)">
-                            <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Work Date</label><input type="date" id="ot-date" class="form-control bg-dark text-white border-secondary" required></div>
-                            <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Task Description</label><input type="text" id="ot-reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Server Maintenance" required></div>
-                            <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Rate Multiplier</label><select id="ot-rate" class="form-control" required><option value="1.5">Normal Day & Off Day (1.5x)</option><option value="2.0">Rest Day / Sunday (2.0x)</option><option value="3.0">Public Holiday (3.0x)</option></select></div>
-                            <div class="mb-4"><label class="form-label text-secondary small fw-semibold">Total Hours Worked</label><input type="number" id="ot-hours" class="form-control bg-dark text-white border-secondary" value="10.5" step="0.1" min="0.1" required></div>
-                            <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Add to Draft</button>
-                        </form>
+            <div class="col-12">
+                <!-- Ringkasan Gaji -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3 col-6 gsap-element"><div class="glass-panel p-3 text-center"><small class="text-secondary d-block">Rate 1.5x</small><strong id="breakdown-1-5">0.0h</strong></div></div>
+                    <div class="col-md-3 col-6 gsap-element"><div class="glass-panel p-3 text-center"><small class="text-primary d-block">Rate 2.0x</small><strong id="breakdown-2-0" class="text-primary">0.0h</strong></div></div>
+                    <div class="col-md-3 col-6 gsap-element"><div class="glass-panel p-3 text-center"><small style="color: var(--brand-purple);" class="d-block">Rate 3.0x</small><strong id="breakdown-3-0" style="color: var(--brand-purple);">0.0h</strong></div></div>
+                    <div class="col-md-3 col-6 gsap-element"><div class="glass-panel p-3 text-center border-success"><small class="text-success d-block">Draft Total</small><strong id="grand-total-val" class="text-success fs-5">RM 0.00</strong></div></div>
+                </div>
+                
+                <!-- Jadual OT -->
+                <div class="glass-panel p-4 gsap-element">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <h5 class="fw-bold mb-0"><i class="fas fa-list-ul text-primary me-2"></i>Pending Draft Ledger</h5>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm fw-bold px-3 py-2 shadow-sm d-none d-lg-inline-block me-2" data-bs-toggle="modal" data-bs-target="#ot-modal"><i class="fas fa-plus me-1"></i> Log OT</button>
+                            <button onclick="window.simpanKeCloud()" class="btn btn-success btn-sm fw-bold px-3 py-2 shadow-sm"><i class="fas fa-cloud-upload-alt me-1"></i> Commit to Cloud</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-glass align-middle"><thead><tr><th>No</th><th>Date</th><th>Task</th><th>Rate</th><th>Hours</th><th>Pay</th><th class="text-end">Act</th></tr></thead><tbody id="ot-table-body"><tr><td colspan="7" class="text-center text-secondary py-4">No drafts added yet.</td></tr></tbody></table>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-8">
-                <div class="row g-3 mb-4">
-                    <div class="col-md-3 gsap-element"><div class="glass-panel p-3 text-center"><small class="text-secondary d-block">Rate 1.5x</small><strong id="breakdown-1-5">0.0h</strong></div></div>
-                    <div class="col-md-3 gsap-element"><div class="glass-panel p-3 text-center"><small class="text-primary d-block">Rate 2.0x</small><strong id="breakdown-2-0" class="text-primary">0.0h</strong></div></div>
-                    <div class="col-md-3 gsap-element"><div class="glass-panel p-3 text-center"><small style="color: var(--brand-purple);" class="d-block">Rate 3.0x</small><strong id="breakdown-3-0" style="color: var(--brand-purple);">0.0h</strong></div></div>
-                    <div class="col-md-3 gsap-element"><div class="glass-panel p-3 text-center border-success"><small class="text-success d-block">Draft Total</small><strong id="grand-total-val" class="text-success fs-5">RM 0.00</strong></div></div>
-                </div>
-                <div class="glass-panel p-4 gsap-element">
+        </div>
+    </div>
+
+    <!-- OT Input Modal (Popup) -->
+    <div class="modal fade" id="ot-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content glass-panel border-0">
+                <div class="modal-body p-4">
                     <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="fw-bold mb-0"><i class="fas fa-list-ul text-primary me-2"></i>Pending Draft Ledger</h5>
-                        <button onclick="window.simpanKeCloud()" class="btn btn-success btn-sm fw-bold px-3 py-2 shadow-sm"><i class="fas fa-cloud-upload-alt me-1"></i> Commit to Cloud</button>
+                        <h5 class="fw-bold mb-0"><i class="fas fa-clock text-primary me-2"></i>Log OT Hours</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                        <table class="table table-glass align-middle"><thead><tr><th>No</th><th>Date</th><th>Task</th><th>Rate</th><th>Hours</th><th>Pay</th><th class="text-end">Act</th></tr></thead><tbody id="ot-table-body"><tr><td colspan="7" class="text-center text-secondary py-4">No drafts added yet.</td></tr></tbody></table>
-                    </div>
+                    <form id="ot-input-form" onsubmit="window.tambahKeSenaraiTempatan(event)">
+                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Work Date</label><input type="date" id="ot-date" class="form-control bg-dark text-white border-secondary" required></div>
+                        <div class="mb-3"><label class="form-label text-secondary small fw-semibold">Task Description</label><input type="text" id="ot-reason" class="form-control bg-dark text-white border-secondary" placeholder="e.g., Server Maintenance" required></div>
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-semibold">Rate Multiplier</label>
+                            <select id="ot-rate" class="form-select bg-dark text-white border-secondary" required>
+                                <option value="1.5">Normal Day & Off Day (1.5x)</option>
+                                <option value="2.0">Rest Day / Sunday (2.0x)</option>
+                                <option value="3.0">Public Holiday (3.0x)</option>
+                            </select>
+                        </div>
+                        <div class="mb-4"><label class="form-label text-secondary small fw-semibold">Total Hours Worked</label><input type="number" id="ot-hours" class="form-control bg-dark text-white border-secondary" value="10.5" step="0.1" min="0.1" required></div>
+                        <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow-sm">Add to Draft</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -89,21 +113,12 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
     <script type="module" src="script.js"></script>
+    
+    <!-- Pendaftaran Service Worker untuk PWA -->
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-              console.log('ServiceWorker berjaya didaftarkan dengan skop: ', registration.scope);
-            })
-            .catch(err => {
-              console.log('Pendaftaran ServiceWorker gagal: ', err);
-            });
-        });
-      }
+      if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js').catch(err => console.log('SW Gagal', err)); }); }
     </script>
 </body>
 </html>
