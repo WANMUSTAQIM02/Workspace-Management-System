@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = { 
@@ -14,40 +14,6 @@ const db = getFirestore(app);
 let currentUser = null;
 let basicSalary = 0;
 let draftOTList = [];
-
-// =========================================================================
-// PREMIUM UI & ANIMATION INITIALIZATION
-// =========================================================================
-function initPremiumUI() {
-    const canvas = document.getElementById('bg-canvas');
-    if(canvas) {
-        const scene = new THREE.Scene(); 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true }); 
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        
-        const geom = new THREE.BufferGeometry(); 
-        const posArray = new Float32Array(500 * 3);
-        for(let i=0; i<500*3; i++) posArray[i] = (Math.random() - 0.5) * 10;
-        geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        
-        const mat = new THREE.PointsMaterial({ size: 0.005, color: 0x0d6efd }); 
-        const mesh = new THREE.Points(geom, mat); 
-        scene.add(mesh); 
-        camera.position.z = 3;
-        
-        function animate() { 
-            requestAnimationFrame(animate); 
-            mesh.rotation.y += 0.001; 
-            renderer.render(scene, camera); 
-        } 
-        animate();
-        
-        if (typeof gsap !== 'undefined') {
-            gsap.to(".gsap-element", { y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: "power3.out" });
-        }
-    }
-}
 
 // =========================================================================
 // PREMIUM ENGLISH TOAST NOTIFICATION
@@ -77,7 +43,7 @@ function showPremiumToast(message, type = 'success') {
 }
 
 // =========================================================================
-// AUTHENTICATION & DATA FETCHING
+// AUTHENTICATION LOGIC (DASHBOARD)
 // =========================================================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -91,18 +57,17 @@ onAuthStateChanged(auth, async (user) => {
                 basicSalary = parseFloat(data.basicSalaryProfile) || 0;
                 const hourlyRate = (basicSalary / 26 / 8).toFixed(2);
                 
-                document.getElementById('dashboard-greeting').innerText = `Welcome back, ${data.nicknameProfile || 'User'}!`;
-                document.getElementById('salary-indicator').innerText = `Hourly Rate: RM ${hourlyRate}/hour`;
-            } else {
-                document.getElementById('dashboard-greeting').innerText = "Please configure your profile settings first.";
-                showPremiumToast("Profile setup required.", "warning");
+                const greetingEl = document.getElementById('dashboard-greeting');
+                const salaryEl = document.getElementById('salary-indicator');
+                if(greetingEl) greetingEl.innerText = `Welcome back, ${data.nicknameProfile || 'User'}!`;
+                if(salaryEl) salaryEl.innerText = `Hourly Rate: RM ${hourlyRate}/hour`;
             }
         } catch (error) {
             console.error("Error fetching user data:", error);
-            showPremiumToast("Failed to load user data.", "error");
         }
     } else {
-        window.location.href = "login.html";
+        // Kalau tak login, tendang balik ke login.html
+        window.location.replace("login.html");
     }
 });
 
@@ -123,11 +88,9 @@ window.tambahKeSenaraiTempatan = function(e) {
         hoursCount: hoursInput 
     });
 
-    // Reset Form
     document.getElementById('ot-input-form').reset();
     document.getElementById('ot-date').value = new Date().toISOString().split('T')[0];
     
-    // Tutup Modal secara automatik lepas butang ditekan
     const modalEl = document.getElementById('ot-modal');
     if(modalEl) {
         const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
@@ -188,10 +151,15 @@ function updateBreakdown() {
         grandTotalPay += (hourlyRate * item.hoursCount * item.rateFactor);
     });
 
-    document.getElementById('breakdown-1-5').innerText = `${total1_5.toFixed(1)}h`;
-    document.getElementById('breakdown-2-0').innerText = `${total2_0.toFixed(1)}h`;
-    document.getElementById('breakdown-3-0').innerText = `${total3_0.toFixed(1)}h`;
-    document.getElementById('grand-total-val').innerText = `RM ${grandTotalPay.toFixed(2)}`;
+    const el15 = document.getElementById('breakdown-1-5');
+    const el20 = document.getElementById('breakdown-2-0');
+    const el30 = document.getElementById('breakdown-3-0');
+    const elGrand = document.getElementById('grand-total-val');
+    
+    if(el15) el15.innerText = `${total1_5.toFixed(1)}h`;
+    if(el20) el20.innerText = `${total2_0.toFixed(1)}h`;
+    if(el30) el30.innerText = `${total3_0.toFixed(1)}h`;
+    if(elGrand) elGrand.innerText = `RM ${grandTotalPay.toFixed(2)}`;
 }
 
 // =========================================================================
@@ -209,6 +177,7 @@ window.simpanKeCloud = async function() {
     }
 
     const btn = document.querySelector('button[onclick="window.simpanKeCloud()"]');
+    if(!btn) return;
     const originalText = btn.innerHTML;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i>Committing...`;
     btn.disabled = true;
@@ -240,13 +209,12 @@ window.simpanKeCloud = async function() {
 };
 
 // =========================================================================
-// UTILITIES
+// LOGOUT UTILITY
 // =========================================================================
 window.logKeluarSistem = async function() {
     try { 
-        const { signOut } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
         await signOut(auth); 
-        window.location.href = "login.html"; 
+        window.location.replace("login.html"); 
     } catch (error) { 
         console.error(error); 
         showPremiumToast("Logout failed.", "error");
@@ -254,14 +222,44 @@ window.logKeluarSistem = async function() {
 };
 
 // =========================================================================
-// INITIALIZE ON PAGE LOAD
+// PREMIUM UI & ANIMATION INITIALIZATION
 // =========================================================================
+function initPremiumUI() {
+    const canvas = document.getElementById('bg-canvas');
+    if(canvas && typeof THREE !== 'undefined') {
+        const scene = new THREE.Scene(); 
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true }); 
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        const geom = new THREE.BufferGeometry(); 
+        const posArray = new Float32Array(500 * 3);
+        for(let i=0; i<500*3; i++) posArray[i] = (Math.random() - 0.5) * 10;
+        geom.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const mat = new THREE.PointsMaterial({ size: 0.005, color: 0x0d6efd }); 
+        const mesh = new THREE.Points(geom, mat); 
+        scene.add(mesh); 
+        camera.position.z = 3;
+        
+        function animate() { 
+            requestAnimationFrame(animate); 
+            mesh.rotation.y += 0.001; 
+            renderer.render(scene, camera); 
+        } 
+        animate();
+    }
+    
+    if (typeof gsap !== 'undefined') {
+        gsap.to(".gsap-element", { y: 0, opacity: 1, duration: 0.8, stagger: 0.15, ease: "power3.out" });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initPremiumUI(); 
     
-    // Aktifkan Choices.js untuk cantikkan Dropdown Rate
     const otRateSelect = document.getElementById('ot-rate');
-    if (otRateSelect) {
+    if (otRateSelect && typeof Choices !== 'undefined') {
         new Choices(otRateSelect, { 
             searchEnabled: false, 
             itemSelectText: '', 
@@ -269,8 +267,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Tarikh default
-    const today = new Date().toISOString().split('T')[0];
     const dateInput = document.getElementById('ot-date');
-    if(dateInput) dateInput.value = today;
+    if(dateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
 });
