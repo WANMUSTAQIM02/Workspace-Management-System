@@ -129,3 +129,20 @@ body, .table-responsive {
         z-index: 10001 !important; /* Pastikan ia sentiasa berada di lapisan paling atas */
     }
 }
+
+/* Fail: style.css */
+.gsap-element {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+/* Fail: style.css */
+.glass-panel, .glass-nav {
+    will-change: transform; /* Beritahu browser ni akan ada perubahan */
+    backface-visibility: hidden; /* Kurangkan beban rendering */
+}
+
+/* Matikan transition pada scroll kalau page terlalu berat */
+body {
+    overflow-x: hidden;
+}

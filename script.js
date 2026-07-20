@@ -59,7 +59,10 @@ onAuthStateChanged(auth, async (user) => {
                 
                 const greetingEl = document.getElementById('dashboard-greeting');
                 const salaryEl = document.getElementById('salary-indicator');
-                if(greetingEl) greetingEl.innerText = `Welcome back, ${data.nicknameProfile || 'User'}!`;
+                
+                // Cuba cari nicknameProfile dulu, kalau takde guna nickName, kalau takde jugak letak User
+                let dName = data.nicknameProfile || data.nickName || 'User';
+                if(greetingEl) greetingEl.innerText = `Welcome back, ${dName}!`;
                 if(salaryEl) salaryEl.innerText = `Hourly Rate: RM ${hourlyRate}/hour`;
             }
         } catch (error) {
@@ -71,7 +74,7 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // =========================================================================
-// DRAFT MANAGEMENT LOGIC (KEMASKINI UNTUK 2 BORANG)
+// DRAFT MANAGEMENT LOGIC (UNTUK 2 BORANG: DESK & MOB)
 // =========================================================================
 window.tambahKeSenaraiTempatan = function(e, source) {
     e.preventDefault();
