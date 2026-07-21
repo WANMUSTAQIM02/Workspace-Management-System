@@ -148,12 +148,12 @@ function renderDraftTable() {
             let jam1 = Math.min(h, 8);
             let jam2 = Math.max(0, h - 8);
             totalPay = (jam1 * 1.5 * hourlyRate) + (jam2 * 2.0 * hourlyRate);
-            if (jam2 > 0) summaryRateText = `Mixed (1.5x / 2.0x)`;
+            if (jam2 > 0) summaryRateText = `Mixed`;
         } else if (r === 3.0) {
             let jam1 = Math.min(h, 8);
             let jam2 = Math.max(0, h - 8);
             totalPay = (jam1 * 2.0 * hourlyRate) + (jam2 * 3.0 * hourlyRate);
-            if (jam2 > 0) summaryRateText = `Mixed (2.0x / 3.0x)`;
+            if (jam2 > 0) summaryRateText = `Mixed`;
         } else {
             totalPay = h * 1.5 * hourlyRate;
         }
