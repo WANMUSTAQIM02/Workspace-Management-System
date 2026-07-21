@@ -16,6 +16,21 @@ let basicSalary = 0;
 let draftOTList = [];
 
 // =========================================================================
+// CSS TAMBAHAN UNTUK MOBILE (HILANGKAN SCROLL & JADIKAN KAD)
+// =========================================================================
+const mobileStyle = document.createElement('style');
+mobileStyle.innerHTML = `
+@media (max-width: 768px) {
+    .table-responsive { overflow-x: hidden !important; }
+    .table-glass thead { display: none !important; }
+    .table-glass tbody { border: none !important; }
+    .table-glass tr.d-md-none td { display: block; width: 100%; border: none !important; padding: 0 !important; }
+    .table-glass tr.empty-state-row td { display: block; width: 100%; border: none !important; text-align: center; }
+}
+`;
+document.head.appendChild(mobileStyle);
+
+// =========================================================================
 // PREMIUM ENGLISH TOAST NOTIFICATION
 // =========================================================================
 function showPremiumToast(message, type = 'success') {
@@ -107,14 +122,14 @@ window.tambahKeSenaraiTempatan = function(e, source) {
 };
 
 // =========================================================================
-// RENDER JADUAL (EXECUTIVE CLEAN STYLE)
+// RENDER JADUAL (GABUNGAN DESKTOP TABLE & MOBILE CARD)
 // =========================================================================
 function renderDraftTable() {
     const tbody = document.getElementById('ot-table-body');
     if (!tbody) return;
 
     if (draftOTList.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-secondary py-4">No drafts added yet.</td></tr>`;
+        tbody.innerHTML = `<tr class="empty-state-row"><td colspan="7" class="text-center text-secondary py-4">No drafts added yet.</td></tr>`;
         updateBreakdown();
         return;
     }
@@ -144,7 +159,8 @@ function renderDraftTable() {
         }
 
         tbody.innerHTML += `
-            <tr class="align-middle" style="cursor: pointer;" onclick="window.bukaDrawerDetails(${index})" title="Click to view detailed receipt">
+            <!-- [1] DESKTOP VIEW (Hanya keluar kat PC/Laptop - d-none d-md-table-row) -->
+            <tr class="align-middle d-none d-md-table-row" style="cursor: pointer;" onclick="window.bukaDrawerDetails(${index})" title="Click to view detailed receipt">
                 <td>${index + 1}</td>
                 <td><span class="badge bg-secondary bg-opacity-50 px-2 py-1">${item.otDate}</span></td>
                 <td class="fw-semibold text-white">
@@ -160,13 +176,42 @@ function renderDraftTable() {
                     <button onclick="window.padamDraft(${index})" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
+
+            <!-- [2] MOBILE VIEW CARD (Hanya keluar kat Phone - d-md-none) -->
+            <tr class="d-md-none bg-transparent" style="cursor: pointer;" onclick="window.bukaDrawerDetails(${index})">
+                <td colspan="7" class="p-0 border-0">
+                    <div class="glass-panel p-3 mb-3 position-relative" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(20,20,20,0.6);">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="badge bg-secondary bg-opacity-50 text-white mb-2 px-2 py-1">${item.otDate}</span>
+                                <h6 class="fw-bold text-white mb-0" style="line-height: 1.4;">${item.taskDesc}</h6>
+                            </div>
+                            <button onclick="event.stopPropagation(); window.padamDraft(${index})" class="btn btn-sm text-danger p-2 border-0 shadow-none">
+                                <i class="fas fa-trash fs-5"></i>
+                            </button>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-end mt-3 border-top border-secondary border-opacity-25 pt-3">
+                            <div>
+                                <div class="text-secondary small mb-1">Rate: <span class="text-info fw-bold">${summaryRateText}</span></div>
+                                <div class="text-secondary small">Hours: <span class="text-white fw-bold">${h.toFixed(1)}h</span></div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-success fw-bold fs-4 mb-1">RM ${totalPay.toFixed(2)}</div>
+                                <div class="text-primary mt-1 fw-semibold" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                                    <i class="fas fa-hand-pointer me-1"></i> Tap for details
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+            </tr>
         `;
     });
     updateBreakdown();
 }
 
 // =========================================================================
-// FUNGSI BUKA SIDE DRAWER (OFFCANVAS) UNTUK PAPAR RESIT TERPERINCI
+// FUNGSI BUKA SIDE DRAWER (OFFCANVAS) & PENGIRAAN TERPERINCI
 // =========================================================================
 window.bukaDrawerDetails = function(index) {
     const item = draftOTList[index];
@@ -179,6 +224,18 @@ window.bukaDrawerDetails = function(index) {
     let breakdownHtml = "";
     let totalPay = 0;
 
+    const makeRow = (title, hours, rateMultiplier, pay) => {
+        return `
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div class="text-secondary small" style="width: 45%; line-height: 1.2;">${title}</div>
+                <div class="text-end" style="width: 55%;">
+                    <div class="text-secondary mb-1" style="font-size: 0.75rem;">${hours.toFixed(1)}h &times; RM ${(hourlyRate * rateMultiplier).toFixed(2)}</div>
+                    <div class="text-white fw-bold" style="font-size: 1rem;">RM ${pay.toFixed(2)}</div>
+                </div>
+            </div>
+        `;
+    };
+
     if (r === 2.0) {
         let jam1 = Math.min(h, 8);
         let jam2 = Math.max(0, h - 8);
@@ -186,20 +243,9 @@ window.bukaDrawerDetails = function(index) {
         let p2 = jam2 * 2.0 * hourlyRate;
         totalPay = p1 + p2;
 
-        breakdownHtml = `
-            <div class="d-flex justify-content-between mb-3 text-secondary">
-                <span>First 8.0 Hours (1.5x)</span>
-                <span class="text-white">${jam1.toFixed(1)}h × RM ${(hourlyRate * 1.5).toFixed(2)} = <strong>RM ${p1.toFixed(2)}</strong></span>
-            </div>
-        `;
-        if (jam2 > 0) {
-            breakdownHtml += `
-                <div class="d-flex justify-content-between mb-3 text-secondary">
-                    <span>Remaining Hours (${jam2.toFixed(1)}h @ 2.0x)</span>
-                    <span class="text-white">${jam2.toFixed(1)}h × RM ${(hourlyRate * 2.0).toFixed(2)} = <strong>RM ${p2.toFixed(2)}</strong></span>
-                </div>
-            `;
-        }
+        breakdownHtml += makeRow("First 8.0 Hours (1.5x)", jam1, 1.5, p1);
+        if (jam2 > 0) breakdownHtml += makeRow("Remaining Hours (2.0x)", jam2, 2.0, p2);
+        
     } else if (r === 3.0) {
         let jam1 = Math.min(h, 8);
         let jam2 = Math.max(0, h - 8);
@@ -207,53 +253,42 @@ window.bukaDrawerDetails = function(index) {
         let p2 = jam2 * 3.0 * hourlyRate;
         totalPay = p1 + p2;
 
-        breakdownHtml = `
-            <div class="d-flex justify-content-between mb-3 text-secondary">
-                <span>First 8.0 Hours (2.0x)</span>
-                <span class="text-white">${jam1.toFixed(1)}h × RM ${(hourlyRate * 2.0).toFixed(2)} = <strong>RM ${p1.toFixed(2)}</strong></span>
-            </div>
-        `;
-        if (jam2 > 0) {
-            breakdownHtml += `
-                <div class="d-flex justify-content-between mb-3 text-secondary" style="color: var(--brand-purple) !important;">
-                    <span>Remaining Hours (${jam2.toFixed(1)}h @ 3.0x)</span>
-                    <span class="text-white">${jam2.toFixed(1)}h × RM ${(hourlyRate * 3.0).toFixed(2)} = <strong>RM ${p2.toFixed(2)}</strong></span>
-                </div>
-            `;
-        }
+        breakdownHtml += makeRow("First 8.0 Hours (2.0x)", jam1, 2.0, p1);
+        if (jam2 > 0) breakdownHtml += makeRow("<span style='color: var(--brand-purple);'>Remaining Hours (3.0x)</span>", jam2, 3.0, p2);
+        
     } else {
         totalPay = h * 1.5 * hourlyRate;
-        breakdownHtml = `
-            <div class="d-flex justify-content-between mb-3 text-secondary">
-                <span>Standard Overtime (1.5x)</span>
-                <span class="text-white">${h.toFixed(1)}h × RM ${(hourlyRate * 1.5).toFixed(2)} = <strong>RM ${totalPay.toFixed(2)}</strong></span>
-            </div>
-        `;
+        breakdownHtml += makeRow("Standard Overtime (1.5x)", h, 1.5, totalPay);
     }
 
     drawerBody.innerHTML = `
         <div class="mb-4">
-            <span class="badge bg-secondary bg-opacity-20 text-secondary mb-2">${item.otDate}</span>
-            <h4 class="fw-bold text-white mb-1">${item.taskDesc}</h4>
-            <p class="text-muted small">Record Index #${index + 1}</p>
+            <div class="d-inline-block px-3 py-1 mb-3 rounded-pill" style="background: rgba(13, 110, 253, 0.15); border: 1px solid rgba(13, 110, 253, 0.3); color: #6ea8fe; font-size: 0.8rem; font-weight: 600;">
+                <i class="fas fa-calendar-alt me-1"></i> ${item.otDate}
+            </div>
+            <h4 class="fw-bold text-white mb-1" style="line-height: 1.3;">${item.taskDesc}</h4>
+            <p class="text-secondary small">Record Index #${index + 1}</p>
         </div>
 
-        <div class="glass-panel p-4 mb-4 border border-secondary border-opacity-25 rounded-3 bg-black bg-opacity-40">
-            <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom border-secondary border-opacity-25 pb-2">Calculation Breakdown</h6>
+        <div class="p-4 mb-4 rounded-4" style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.05);">
+            <h6 class="text-uppercase text-secondary fw-bold mb-3 border-bottom border-secondary border-opacity-25 pb-3" style="font-size: 0.75rem; letter-spacing: 1px;">Calculation Breakdown</h6>
+            
             ${breakdownHtml}
-            <div class="d-flex justify-content-between align-items-center pt-3 mt-3 border-top border-secondary border-opacity-25">
+            
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-2 border-top border-secondary border-opacity-25">
                 <span class="fw-bold text-white">Total Payout</span>
-                <span class="fs-4 fw-bold text-success">RM ${totalPay.toFixed(2)}</span>
+                <span class="fs-3 fw-bold text-success">RM ${totalPay.toFixed(2)}</span>
             </div>
         </div>
 
-        <div class="alert alert-dark border border-secondary border-opacity-25 text-secondary small d-flex align-items-center gap-3">
-            <i class="fas fa-info-circle text-primary fs-4"></i>
-            <div>This calculation strictly follows the Malaysian Employment Act guidelines regarding split-rate thresholds for Rest Days and Public Holidays.</div>
+        <div class="p-3 rounded-3 d-flex gap-3 align-items-start" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+            <i class="fas fa-info-circle text-primary fs-5 mt-1"></i>
+            <div class="text-secondary" style="font-size: 0.8rem; line-height: 1.5;">
+                This calculation strictly follows the Malaysian Employment Act guidelines regarding split-rate thresholds for Rest Days and Public Holidays.
+            </div>
         </div>
     `;
 
-    // Aktifkan dan paparkan drawer dari Bootstrap
     const drawerEl = document.getElementById('taskDetailDrawer');
     const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
     offcanvas.show();
@@ -303,9 +338,6 @@ function updateBreakdown() {
     if(elGrand) elGrand.innerText = `RM ${grandTotalPay.toFixed(2)}`;
 }
 
-// =========================================================================
-// COMMIT TO CLOUD FUNCTION
-// =========================================================================
 window.simpanKeCloud = async function() {
     if (!currentUser) {
         showPremiumToast("Authentication error. Please login again.", "error");
@@ -390,6 +422,9 @@ function initPremiumUI() {
     }
 }
 
+// =========================================================================
+// LOGIK NATIVE BACK BUTTON (TUTUP DRAWER BILA SWIPE BACK)
+// =========================================================================
 document.addEventListener('DOMContentLoaded', () => {
     initPremiumUI(); 
     
@@ -401,9 +436,33 @@ document.addEventListener('DOMContentLoaded', () => {
     if (deskRateSelect && typeof Choices !== 'undefined') new Choices(deskRateSelect, choicesOptions);
     
     const today = new Date().toISOString().split('T')[0];
-    const mobDate = document.getElementById('mob-date');
-    const deskDate = document.getElementById('desk-date');
-    
-    if(mobDate) mobDate.value = today;
-    if(deskDate) deskDate.value = today;
+    if(document.getElementById('mob-date')) document.getElementById('mob-date').value = today;
+    if(document.getElementById('desk-date')) document.getElementById('desk-date').value = today;
+
+    // Event Listener untuk Drawer (Offcanvas)
+    const drawerEl = document.getElementById('taskDetailDrawer');
+    if(drawerEl) {
+        drawerEl.addEventListener('show.bs.offcanvas', () => {
+            // Push state ke browser history bila drawer dibuka
+            window.history.pushState({ offcanvasOpen: true }, "");
+        });
+        
+        drawerEl.addEventListener('hidden.bs.offcanvas', () => {
+            // Pastikan state dibuang dari history bila ditutup melalui butang 'X'
+            if (history.state && history.state.offcanvasOpen) {
+                window.history.back();
+            }
+        });
+    }
+
+    // Tangkap bila user swipe back kat phone
+    window.addEventListener('popstate', (e) => {
+        const drawerEl = document.getElementById('taskDetailDrawer');
+        if (drawerEl && drawerEl.classList.contains('show')) {
+            const offcanvas = bootstrap.Offcanvas.getInstance(drawerEl);
+            if(offcanvas) {
+                offcanvas.hide(); // Tutup drawer bila tekan back fizikal/swipe
+            }
+        }
+    });
 });
