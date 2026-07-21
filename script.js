@@ -43,7 +43,7 @@ function showPremiumToast(message, type = 'success') {
 }
 
 // =========================================================================
-// AUTHENTICATION LOGIC (DASHBOARD)
+// AUTHENTICATION LOGIC
 // =========================================================================
 onAuthStateChanged(auth, async (user) => {
     if (user) {
@@ -60,7 +60,6 @@ onAuthStateChanged(auth, async (user) => {
                 const greetingEl = document.getElementById('dashboard-greeting');
                 const salaryEl = document.getElementById('salary-indicator');
                 
-                // Cuba cari nicknameProfile dulu, kalau takde guna nickName, kalau takde jugak letak User
                 let dName = data.nicknameProfile || data.nickName || 'User';
                 if(greetingEl) greetingEl.innerText = `Welcome back, ${dName}!`;
                 if(salaryEl) salaryEl.innerText = `Hourly Rate: RM ${hourlyRate}/hour`;
@@ -74,12 +73,11 @@ onAuthStateChanged(auth, async (user) => {
 });
 
 // =========================================================================
-// DRAFT MANAGEMENT LOGIC (UNTUK 2 BORANG: DESK & MOB)
+// DRAFT MANAGEMENT LOGIC
 // =========================================================================
 window.tambahKeSenaraiTempatan = function(e, source) {
     e.preventDefault();
     
-    // Tarik nilai mengikut sumber form (desk atau mob)
     const dateInput = document.getElementById(`${source}-date`).value;
     const reasonInput = document.getElementById(`${source}-reason`).value.trim();
     const rateInput = parseFloat(document.getElementById(`${source}-rate`).value);
@@ -92,14 +90,10 @@ window.tambahKeSenaraiTempatan = function(e, source) {
         hoursCount: hoursInput 
     });
 
-    // Reset isi form
     e.target.reset();
-    
-    // Set tarikh balik ke hari ini
     const today = new Date().toISOString().split('T')[0];
     document.getElementById(`${source}-date`).value = today;
     
-    // Tutup Modal JIKA sumber dari borang mobile sahaja
     if(source === 'mob') {
         const modalEl = document.getElementById('ot-modal');
         if(modalEl) {
@@ -112,6 +106,9 @@ window.tambahKeSenaraiTempatan = function(e, source) {
     showPremiumToast("Task added to draft successfully!", "success");
 };
 
+// =========================================================================
+// RENDER JADUAL (EXECUTIVE CLEAN STYLE)
+// =========================================================================
 function renderDraftTable() {
     const tbody = document.getElementById('ot-table-body');
     if (!tbody) return;
@@ -126,16 +123,40 @@ function renderDraftTable() {
     let hourlyRate = basicSalary > 0 ? (basicSalary / 26 / 8) : 0;
 
     draftOTList.forEach((item, index) => {
-        let pay = hourlyRate * item.hoursCount * item.rateFactor;
+        let r = item.rateFactor;
+        let h = item.hoursCount;
+        let totalPay = 0;
+        let summaryRateText = `${r.toFixed(1)}x`;
+
+        // Kiraan Gaji
+        if (r === 2.0) {
+            let jam1 = Math.min(h, 8);
+            let jam2 = Math.max(0, h - 8);
+            totalPay = (jam1 * 1.5 * hourlyRate) + (jam2 * 2.0 * hourlyRate);
+            if (jam2 > 0) summaryRateText = `Mixed (1.5x / 2.0x)`;
+        } else if (r === 3.0) {
+            let jam1 = Math.min(h, 8);
+            let jam2 = Math.max(0, h - 8);
+            totalPay = (jam1 * 2.0 * hourlyRate) + (jam2 * 3.0 * hourlyRate);
+            if (jam2 > 0) summaryRateText = `Mixed (2.0x / 3.0x)`;
+        } else {
+            totalPay = h * 1.5 * hourlyRate;
+        }
+
         tbody.innerHTML += `
-            <tr>
+            <tr class="align-middle" style="cursor: pointer;" onclick="window.bukaDrawerDetails(${index})" title="Click to view detailed receipt">
                 <td>${index + 1}</td>
-                <td><span class="badge bg-secondary bg-opacity-50">${item.otDate}</span></td>
-                <td class="fw-semibold">${item.taskDesc}</td>
-                <td>${item.rateFactor.toFixed(1)}x</td>
-                <td>${item.hoursCount.toFixed(1)}h</td>
-                <td class="text-success fw-bold">RM ${pay.toFixed(2)}</td>
-                <td class="text-end">
+                <td><span class="badge bg-secondary bg-opacity-50 px-2 py-1">${item.otDate}</span></td>
+                <td class="fw-semibold text-white">
+                    ${item.taskDesc} 
+                    <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 ms-2 font-monospace" style="font-size: 0.7rem;">
+                        <i class="fas fa-search-plus me-1"></i> Details
+                    </span>
+                </td>
+                <td><span class="text-info">${summaryRateText}</span></td>
+                <td>${h.toFixed(1)}h</td>
+                <td class="text-success fw-bold">RM ${totalPay.toFixed(2)}</td>
+                <td class="text-end" onclick="event.stopPropagation()">
                     <button onclick="window.padamDraft(${index})" class="btn btn-sm btn-outline-danger border-0"><i class="fas fa-trash"></i></button>
                 </td>
             </tr>
@@ -143,6 +164,100 @@ function renderDraftTable() {
     });
     updateBreakdown();
 }
+
+// =========================================================================
+// FUNGSI BUKA SIDE DRAWER (OFFCANVAS) UNTUK PAPAR RESIT TERPERINCI
+// =========================================================================
+window.bukaDrawerDetails = function(index) {
+    const item = draftOTList[index];
+    const drawerBody = document.getElementById('drawer-content-body');
+    if (!drawerBody) return;
+
+    let hourlyRate = basicSalary > 0 ? (basicSalary / 26 / 8) : 0;
+    let r = item.rateFactor;
+    let h = item.hoursCount;
+    let breakdownHtml = "";
+    let totalPay = 0;
+
+    if (r === 2.0) {
+        let jam1 = Math.min(h, 8);
+        let jam2 = Math.max(0, h - 8);
+        let p1 = jam1 * 1.5 * hourlyRate;
+        let p2 = jam2 * 2.0 * hourlyRate;
+        totalPay = p1 + p2;
+
+        breakdownHtml = `
+            <div class="d-flex justify-content-between mb-3 text-secondary">
+                <span>First 8.0 Hours (1.5x)</span>
+                <span class="text-white">${jam1.toFixed(1)}h × RM ${(hourlyRate * 1.5).toFixed(2)} = <strong>RM ${p1.toFixed(2)}</strong></span>
+            </div>
+        `;
+        if (jam2 > 0) {
+            breakdownHtml += `
+                <div class="d-flex justify-content-between mb-3 text-secondary">
+                    <span>Remaining Hours (${jam2.toFixed(1)}h @ 2.0x)</span>
+                    <span class="text-white">${jam2.toFixed(1)}h × RM ${(hourlyRate * 2.0).toFixed(2)} = <strong>RM ${p2.toFixed(2)}</strong></span>
+                </div>
+            `;
+        }
+    } else if (r === 3.0) {
+        let jam1 = Math.min(h, 8);
+        let jam2 = Math.max(0, h - 8);
+        let p1 = jam1 * 2.0 * hourlyRate;
+        let p2 = jam2 * 3.0 * hourlyRate;
+        totalPay = p1 + p2;
+
+        breakdownHtml = `
+            <div class="d-flex justify-content-between mb-3 text-secondary">
+                <span>First 8.0 Hours (2.0x)</span>
+                <span class="text-white">${jam1.toFixed(1)}h × RM ${(hourlyRate * 2.0).toFixed(2)} = <strong>RM ${p1.toFixed(2)}</strong></span>
+            </div>
+        `;
+        if (jam2 > 0) {
+            breakdownHtml += `
+                <div class="d-flex justify-content-between mb-3 text-secondary" style="color: var(--brand-purple) !important;">
+                    <span>Remaining Hours (${jam2.toFixed(1)}h @ 3.0x)</span>
+                    <span class="text-white">${jam2.toFixed(1)}h × RM ${(hourlyRate * 3.0).toFixed(2)} = <strong>RM ${p2.toFixed(2)}</strong></span>
+                </div>
+            `;
+        }
+    } else {
+        totalPay = h * 1.5 * hourlyRate;
+        breakdownHtml = `
+            <div class="d-flex justify-content-between mb-3 text-secondary">
+                <span>Standard Overtime (1.5x)</span>
+                <span class="text-white">${h.toFixed(1)}h × RM ${(hourlyRate * 1.5).toFixed(2)} = <strong>RM ${totalPay.toFixed(2)}</strong></span>
+            </div>
+        `;
+    }
+
+    drawerBody.innerHTML = `
+        <div class="mb-4">
+            <span class="badge bg-secondary bg-opacity-20 text-secondary mb-2">${item.otDate}</span>
+            <h4 class="fw-bold text-white mb-1">${item.taskDesc}</h4>
+            <p class="text-muted small">Record Index #${index + 1}</p>
+        </div>
+
+        <div class="glass-panel p-4 mb-4 border border-secondary border-opacity-25 rounded-3 bg-black bg-opacity-40">
+            <h6 class="text-uppercase text-secondary fw-bold small mb-3 border-bottom border-secondary border-opacity-25 pb-2">Calculation Breakdown</h6>
+            ${breakdownHtml}
+            <div class="d-flex justify-content-between align-items-center pt-3 mt-3 border-top border-secondary border-opacity-25">
+                <span class="fw-bold text-white">Total Payout</span>
+                <span class="fs-4 fw-bold text-success">RM ${totalPay.toFixed(2)}</span>
+            </div>
+        </div>
+
+        <div class="alert alert-dark border border-secondary border-opacity-25 text-secondary small d-flex align-items-center gap-3">
+            <i class="fas fa-info-circle text-primary fs-4"></i>
+            <div>This calculation strictly follows the Malaysian Employment Act guidelines regarding split-rate thresholds for Rest Days and Public Holidays.</div>
+        </div>
+    `;
+
+    // Aktifkan dan paparkan drawer dari Bootstrap
+    const drawerEl = document.getElementById('taskDetailDrawer');
+    const offcanvas = bootstrap.Offcanvas.getOrCreateInstance(drawerEl);
+    offcanvas.show();
+};
 
 window.padamDraft = function(index) {
     draftOTList.splice(index, 1);
@@ -156,10 +271,25 @@ function updateBreakdown() {
     let hourlyRate = basicSalary > 0 ? (basicSalary / 26 / 8) : 0;
 
     draftOTList.forEach(item => {
-        if (item.rateFactor === 1.5) total1_5 += item.hoursCount;
-        if (item.rateFactor === 2.0) total2_0 += item.hoursCount;
-        if (item.rateFactor === 3.0) total3_0 += item.hoursCount;
-        grandTotalPay += (hourlyRate * item.hoursCount * item.rateFactor);
+        let h = item.hoursCount;
+        let r = item.rateFactor;
+
+        if (r === 1.5) {
+            total1_5 += h;
+            grandTotalPay += (h * 1.5 * hourlyRate);
+        } else if (r === 2.0) {
+            let jamPertama = Math.min(h, 8);
+            let jamBaki = Math.max(0, h - 8);
+            total1_5 += jamPertama;
+            total2_0 += jamBaki;
+            grandTotalPay += (jamPertama * 1.5 * hourlyRate) + (jamBaki * 2.0 * hourlyRate);
+        } else if (r === 3.0) {
+            let jamPertama = Math.min(h, 8);
+            let jamBaki = Math.max(0, h - 8);
+            total2_0 += jamPertama;
+            total3_0 += jamBaki;
+            grandTotalPay += (jamPertama * 2.0 * hourlyRate) + (jamBaki * 3.0 * hourlyRate);
+        }
     });
 
     const el15 = document.getElementById('breakdown-1-5');
@@ -219,9 +349,6 @@ window.simpanKeCloud = async function() {
     }
 };
 
-// =========================================================================
-// LOGOUT UTILITY
-// =========================================================================
 window.logKeluarSistem = async function() {
     try { 
         await signOut(auth); 
@@ -232,9 +359,6 @@ window.logKeluarSistem = async function() {
     }
 };
 
-// =========================================================================
-// PREMIUM UI & ANIMATION INITIALIZATION
-// =========================================================================
 function initPremiumUI() {
     const canvas = document.getElementById('bg-canvas');
     if(canvas && typeof THREE !== 'undefined') {
@@ -269,7 +393,6 @@ function initPremiumUI() {
 document.addEventListener('DOMContentLoaded', () => {
     initPremiumUI(); 
     
-    // Init Choices.js untuk kedua-dua dropdown
     const mobRateSelect = document.getElementById('mob-rate');
     const deskRateSelect = document.getElementById('desk-rate');
     const choicesOptions = { searchEnabled: false, itemSelectText: '', shouldSort: false };
@@ -277,7 +400,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (mobRateSelect && typeof Choices !== 'undefined') new Choices(mobRateSelect, choicesOptions);
     if (deskRateSelect && typeof Choices !== 'undefined') new Choices(deskRateSelect, choicesOptions);
     
-    // Set tarikh default pada hari ini untuk kedua-dua form
     const today = new Date().toISOString().split('T')[0];
     const mobDate = document.getElementById('mob-date');
     const deskDate = document.getElementById('desk-date');
